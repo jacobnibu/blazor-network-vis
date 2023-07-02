@@ -1,14 +1,16 @@
 ﻿@page "/fetchdata"
 @using blazor_network_vis.Data
-@inject WeatherForecastService ForecastService
+@using System.Globalization
+@using CsvHelper
+@inject IWebHostEnvironment WebHostEnvironment
 
-<PageTitle>Weather forecast</PageTitle>
+<PageTitle>Network Data</PageTitle>
 
-<h1>Weather forecast</h1>
+<h1>Position data</h1>
 
-<p>This component demonstrates fetching data from a service.</p>
+<p>Sample data of positions at the company.</p>
 
-@if (forecasts == null)
+@if (positions == null)
 {
     <p><em>Loading...</em></p>
 }
@@ -17,20 +19,86 @@ else
     <table class="table">
         <thead>
             <tr>
-                <th>Date</th>
-                <th>Temp. (C)</th>
-                <th>Temp. (F)</th>
-                <th>Summary</th>
+                <th>Posn ID</th>
+                <th>Posn Type</th>
+                <th>City</th>
+                <th>Department</th>
+                <th>Division</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var forecast in forecasts)
+            @foreach (var posn in positions.GetRange(1,10))
             {
                 <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
-                    <td>@forecast.TemperatureC</td>
-                    <td>@forecast.TemperatureF</td>
-                    <td>@forecast.Summary</td>
+                    <td>@posn.posn_id</td>
+                    <td>@posn.posn_type</td>
+                    <td>@posn.city</td>
+                    <td>@posn.dept</td>
+                    <td>@posn.div</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<h1>Employee data</h1>
+
+<p>Sample data of employees at the company.</p>
+
+@if (employees == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Employee ID</th>
+                <th>Employee Name</th>
+                <th>Grade</th>
+                <th>Experience (years)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var emp in employees.GetRange(1,10))
+            {
+                <tr>
+                    <td>@emp.emp_id</td>
+                    <td>@emp.emp_name</td>
+                    <td>@emp.grade</td>
+                    <td>@emp.experience</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<h1>Relationship data</h1>
+
+<p>Sample data of relationships between nodes.</p>
+
+@if (relationships == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Source Node</th>
+                <th>Target Node</th>
+                <th>Relationship Type</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var reln in relationships.GetRange(1,10))
+            {
+                <tr>
+                    <td>@reln.source</td>
+                    <td>@reln.target</td>
+                    <td>@reln.type</td>
                 </tr>
             }
         </tbody>
@@ -38,10 +106,26 @@ else
 }
 
 @code {
-    private WeatherForecast[]? forecasts;
+    private List<Position> positions;
+    private List<Employee> employees;
+    private List<Relationship> relationships;
 
     protected override async Task OnInitializedAsync()
     {
-        forecasts = await ForecastService.GetForecastAsync(DateOnly.FromDateTime(DateTime.Now));
+        var filePath1 = Path.Combine(WebHostEnvironment.ContentRootPath, "posn_df.csv");
+        var filePath2 = Path.Combine(WebHostEnvironment.ContentRootPath, "emp_df.csv");
+        var filePath3 = Path.Combine(WebHostEnvironment.ContentRootPath, "rpt_df.csv");
+
+        using (var reader1 = new StreamReader(filePath1))
+        using (var reader2 = new StreamReader(filePath2))
+        using (var reader3 = new StreamReader(filePath3))
+        using (var csv1 = new CsvReader(reader1, CultureInfo.InvariantCulture))
+        using (var csv2 = new CsvReader(reader2, CultureInfo.InvariantCulture))
+        using (var csv3 = new CsvReader(reader3, CultureInfo.InvariantCulture))
+        {
+            positions = csv1.GetRecords<Position>().ToList();
+            employees = csv2.GetRecords<Employee>().ToList();
+            relationships = csv3.GetRecords<Relationship>().ToList();
+        }
     }
 }
