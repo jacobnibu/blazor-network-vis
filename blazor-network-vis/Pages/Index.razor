@@ -1,9 +1,16 @@
 ﻿@page "/"
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
 
-<PageTitle>Index</PageTitle>
+<PageTitle>Network Visualization</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Network Visualization</h1>
 
-Welcome to your new app.
+<svg width="1800" height="1200"></svg>
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+@code {
+  protected override void OnAfterRender(bool firstRender)
+    {
+        JS.InvokeVoidAsync("initiateD3");
+    }
+}
