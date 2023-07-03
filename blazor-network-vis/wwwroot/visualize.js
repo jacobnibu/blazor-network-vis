@@ -1,8 +1,11 @@
 function initiateD3() {
 
-  var svg = d3.select("svg"),
-    width = +svg.attr("width"),
-    height = +svg.attr("height");
+  var canvas = d3.select("#networkvis");
+  var width = canvas.attr("width");
+  var height = canvas.attr("height");
+  var r = 6;
+  var color = d3.scaleOrdinal(d3.schemeCategory20);
+  var ctx = canvas.node().getContext("2d");
 
   var simulation = d3.forceSimulation()
     .force("link", d3.forceLink().id(function (d) {
@@ -11,78 +14,78 @@ function initiateD3() {
     .force("charge", d3.forceManyBody())
     .force("center", d3.forceCenter(width / 2, height / 2));
 
+  // d3 data loading and display
   d3.json("network_vis.json", function (error, graph) {
     if (error) throw error;
 
-    var link = svg.append("g")
-        .attr("class", "links")
-        .selectAll("line")
-        .data(graph.links)
-        .enter().append("line");
-
-    var node = svg.append("g")
-        .attr("class", "nodes")
-        .selectAll("circle")
-        .data(graph.nodes)
-        .enter().append("circle")
-        .attr("r", 5)
-        .call(d3.drag()
-            .on("start", dragstarted)
-            .on("drag", dragged)
-            .on("end", dragended));
-
-    node.append("title")
-        .text(function (d) {
-            return d.id;
-        });
-
     simulation
-        .nodes(graph.nodes)
-        .on("tick", ticked);
+      .nodes(graph.nodes)
+      .on("tick", update)  // should come before adding links
+      .force("link").links(graph.links);
 
-    simulation.force("link")
-        .links(graph.links);
+    canvas
+      .call(d3.drag()
+      .container(canvas.node())
+      .subject(dragsubject)
+      .on("start", dragstarted)
+      .on("drag", dragged)
+      .on("end", dragended)
+    );
 
-    function ticked() {
-        link
-            .attr("x1", function (d) {
-                return d.source.x;
-            })
-            .attr("y1", function (d) {
-                return d.source.y;
-            })
-            .attr("x2", function (d) {
-                return d.target.x;
-            })
-            .attr("y2", function (d) {
-                return d.target.y;
-            });
-
-        node
-            .attr("cx", function (d) {
-                return d.x;
-            })
-            .attr("cy", function (d) {
-                return d.y;
-            });
+    function update() {
+      ctx.clearRect(0, 0, width, height);  // clear the whole canvas to redraw
+  
+      ctx.beginPath();
+      ctx.strokeStyle = "#aaa";
+      graph.links.forEach(drawLink);
+      ctx.stroke();
+  
+      graph.nodes.forEach(drawNode);
+      
     }
+
+    function dragsubject() {
+      return simulation.find(d3.event.x, d3.event.y);
+    }
+
   });
 
-}
+  function drawNode(d) {
+    ctx.beginPath();
+    ctx.fillStyle = color(d.div);  // choose a property of the node
+    ctx.moveTo(d.x, d.y);
+    ctx.arc(d.x, d.y, r, 0, r* Math.PI);
+    ctx.fill();
+  };
+  
+  function drawLink(l) {
+    ctx.moveTo(l.source.x, l.source.y);
+    ctx.lineTo(l.target.x, l.target.y)
+  };
 
-function dragstarted(d) {
+  // drag functions
+  function dragstarted() {
     if (!d3.event.active) simulation.alphaTarget(0.3).restart();
-    d.fx = d.x;
-    d.fy = d.y;
-}
+    d3.event.subject.fx = d3.event.subject.x;
+    d3.event.subject.fy = d3.event.subject.y;
+    console.log(d3.event.subject);
+  }
 
-function dragged(d) {
-    d.fx = d3.event.x;
-    d.fy = d3.event.y;
-}
+  // Update the subject (dragged node) position during drag.
+  function dragged() {
+    d3.event.subject.fx = d3.event.x;
+    d3.event.subject.fy = d3.event.y;
+  }
 
-function dragended(d) {
+  // Restore the target alpha so the simulation cools after dragging ends.
+  // Unfix the subject position now that it’s no longer being dragged.
+  function dragended() {
     if (!d3.event.active) simulation.alphaTarget(0);
-    d.fx = null;
-    d.fy = null;
+    d3.event.subject.fx = null;
+    d3.event.subject.fy = null;
+  }
+
 }
+
+
+
